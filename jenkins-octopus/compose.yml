@@ -4,7 +4,7 @@ services:
       context: ./frontend
     image: saludos-frontend:latest
     ports:
-    - "8082:80"
+    - "3000:80"
     environment:
       BACKEND_HOST: ${BACKEND_HOST}
       BACKEND_PORT: ${BACKEND_PORT}
