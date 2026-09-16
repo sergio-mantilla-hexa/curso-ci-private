@@ -1,8 +1,12 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'VERSION', defaultValue: '', description: 'Versión de la imagen. Si se deja vacío, se usa el BUILD_NUMBER.')
+    }
+
     environment {
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        IMAGE_TAG = "${params.VERSION ? params.VERSION : env.BUILD_NUMBER}"
         SERVICE_DB       = 'saludos-db'
         SERVICE_BACKEND  = 'saludos-backend'
         SERVICE_FRONTEND = 'saludos-frontend'
