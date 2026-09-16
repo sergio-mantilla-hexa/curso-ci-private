@@ -2,6 +2,10 @@ pipeline {
     agent any
 
     environment {
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        SERVICE_DB       = 'saludos-db'
+        SERVICE_BACKEND  = 'saludos-backend'
+        SERVICE_FRONTEND = 'saludos-frontend'
     }
 
     stages {
@@ -15,13 +19,68 @@ pipeline {
 
         stage('Build') {
             steps {
-                
+                echo 'Construyendo imágenes con Docker Compose...'
+                dir('jenkins-octopus') {
+                    sh 'docker compose build'
+                }
             }
         }
 
         stage('Test') {
-            
+            steps {
+                echo 'Ejecutando validaciones...'
+                // Verificar que las tres imágenes fueron construidas correctamente
+                sh "docker image inspect ${SERVICE_DB}:latest"
+                sh "docker image inspect ${SERVICE_BACKEND}:latest"
+                sh "docker image inspect ${SERVICE_FRONTEND}:latest"
+                echo 'Todas las imágenes fueron construidas exitosamente.'
+            }
         }
+
+        stage('Release') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'DOCKERHUB',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    echo "Generando release con tag: ${IMAGE_TAG}"
+
+                    sh "docker tag ${SERVICE_DB}:latest $DOCKER_USER/${SERVICE_DB}:${IMAGE_TAG}"
+                    sh "docker tag ${SERVICE_DB}:latest $DOCKER_USER/${SERVICE_DB}:latest"
+
+                    sh "docker tag ${SERVICE_BACKEND}:latest $DOCKER_USER/${SERVICE_BACKEND}:${IMAGE_TAG}"
+                    sh "docker tag ${SERVICE_BACKEND}:latest $DOCKER_USER/${SERVICE_BACKEND}:latest"
+
+                    sh "docker tag ${SERVICE_FRONTEND}:latest $DOCKER_USER/${SERVICE_FRONTEND}:${IMAGE_TAG}"
+                    sh "docker tag ${SERVICE_FRONTEND}:latest $DOCKER_USER/${SERVICE_FRONTEND}:latest"
+
+                    echo "Imágenes etiquetadas para $DOCKER_USER"
+                }
+            }
+        }
+
+        stage('Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'DOCKERHUB',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+
+                    sh "docker push $DOCKER_USER/${SERVICE_DB}:${IMAGE_TAG}"
+                    sh "docker push $DOCKER_USER/${SERVICE_DB}:latest"
+
+                    sh "docker push $DOCKER_USER/${SERVICE_BACKEND}:${IMAGE_TAG}"
+                    sh "docker push $DOCKER_USER/${SERVICE_BACKEND}:latest"
+
+                    sh "docker push $DOCKER_USER/${SERVICE_FRONTEND}:${IMAGE_TAG}"
+                    sh "docker push $DOCKER_USER/${SERVICE_FRONTEND}:latest"
+                }
+            }
+        }
+    }
 
     post {
         success {
@@ -30,6 +89,11 @@ pipeline {
 
         failure {
             echo 'El pipeline CI falló.'
+        }
+
+        always {
+            // Cerrar sesión de Docker Hub
+            sh 'docker logout || true'
         }
     }
 }

@@ -2,7 +2,7 @@ services:
   frontend:
     build:
       context: ./frontend
-    image: saludos-frontend:2.0
+    image: saludos-frontend:latest
     ports:
     - "8082:80"
     environment:
@@ -11,7 +11,7 @@ services:
   
 
   backend:
-    image: saludos-backend:6.0
+    image: saludos-backend:latest
     build:
       context: ./backend
     environment:
@@ -29,7 +29,7 @@ services:
   database:
     build:
         context: ./db
-    image: saludos-db:2.0
+    image: saludos-db:latest
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
