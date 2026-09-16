@@ -8,6 +8,8 @@ services:
     environment:
       BACKEND_HOST: ${BACKEND_HOST}
       BACKEND_PORT: ${BACKEND_PORT}
+    depends_on:
+      - backend
   
 
   backend:
